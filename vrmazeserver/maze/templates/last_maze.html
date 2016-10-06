@@ -1,0 +1,80 @@
+{% load staticfiles %}
+<html>
+<head>
+    <title>Maze</title>
+    <script src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}" />
+</head>
+<body>
+    <div id="home" style="width: 600px;height: 750px;" data-role="content">
+        <div style="float: right;">
+            <span id="stopwatch">&nbsp;</span>
+        </div>
+        <table id="table-id">
+            {% with last_index=size|add:"-1" %}
+                {% for i in size_range %}
+                    <tr>
+                        {% for j in size_range %}
+                            {% with row=i|stringformat:"s" %}
+                            {% with column=j|stringformat:"s" %}
+                            {% with key=row|add:","|add:column %}
+                                {% if i == 0 and j == 0 %}
+                                    <td id="node-{{ i }}-{{ j }}" data-row="{{ i }}" data-column="{{ j }}" class="{{ maze|get_item:key }} current"></td>
+                                {% elif i == last_index and j == last_index %}
+                                    <td id="node-{{ i }}-{{ j }}" data-row="{{ i }}" data-column="{{ j }}" class="{{ maze|get_item:key }} end"></td>
+                                {% else %}
+                                    <td id="node-{{ i }}-{{ j }}" data-row="{{ i }}" data-column="{{ j }}" class="{{ maze|get_item:key }}"></td>
+                                {% endif %}
+                            {% endwith %}
+                            {% endwith %}
+                            {% endwith %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            {% endwith %}
+        </table>
+    </div>
+    <div id="footer" data-role="footer">
+    </div>
+</body>
+
+<script type="text/javascript">
+    var last_node;
+    var polling = true;
+    ( function poll () {
+        setTimeout(
+            function () {
+                $.ajax({
+                    url: "/get_person_position",
+                    success: function(data){
+                        if ( typeof last_node !== 'undefined' ) {
+                            last_node.removeClass('cur_node_S');
+                            last_node.removeClass('cur_node_N');
+                            last_node.removeClass('cur_node_W');
+                            last_node.removeClass('cur_node_E');
+                        }
+
+                        if ( data.dir != '' ) {
+                            last_node = $('td#node-' + data.node_row + '-' + data.node_col);
+                            last_node.addClass('cur_node_' + data.dir);
+                        }
+
+                        console.log(data);
+
+                        if ( data.node_row == {{ size }}-1 && data.node_col == {{ size }}-1 ) {
+                            alert('Ура! Финиш!')
+                            polling = false;
+                        }
+                    },
+                    dataType: "json",
+                }).always( function () {
+                    if ( polling ) { poll() }
+                });
+            },
+            1000/3
+        );
+    } )();
+</script>
+
+</html>
+
